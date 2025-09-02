@@ -5,7 +5,7 @@
 ## Email: daniel.ottmann.riera@gmail.com
 ##
 ## Date created: January 2024
-## Last update:  March 2025 2024
+## Last update:  July 2025 2024
 ##
 ## ---------------------------
 ##
@@ -323,10 +323,10 @@ lons = c(-94, 11)
 lats = c(12, 68)
 
 df1_2 <- df1_2 %>%
-  mutate(funGroup = case_when(funGroup == "demersals" ~ "a)",
-                              funGroup == "smallPel" ~ "b)",
-                              funGroup == "largePel" ~ "c)",
-                              funGroup == "midwater" ~ "d)",
+  mutate(funGroup = case_when(funGroup == "demersals" ~ "a) Demersal fishes",
+                              funGroup == "smallPel" ~ "b) Small pelagic fishes",
+                              funGroup == "largePel" ~ "c) Large pelagic fishes",
+                              funGroup == "midwater" ~ "d) Midwater fishes",
                               T ~ funGroup))
 
 p <- ggplot() +
@@ -414,7 +414,7 @@ p <- ggplot() +
   scale_color_manual(values = c(as.vector(my_palette)[c(8, 6, 5, 4)], "black"),
                      labels = c("demersals" = "Demersals", "largePel" = "Large pelagics", "midwater" = "Midwater fish", "smallPel" = "Small pelagics", "Total" = "Total")) +
   geom_hline(yintercept = 0.1, alpha = 1, color = "white", size = 1) +
-  xlab("Depth (m)") +
+  xlab("Bottom depth (m)") +
   ylab(expression(paste("Biomass (g ww ", m^-2, ")"))) +
   xlim(0, 2500) +
   scale_y_log10(breaks = c(0.1, 0.3, 1, 3, 10, 30)) +

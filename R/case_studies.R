@@ -5,7 +5,7 @@
 ## Email: daniel.ottmann.riera@gmail.com
 ##
 ## Date created: February 2024
-## Last update:  March 2024
+## Last update:  July 2024
 ##
 ## ---------------------------
 ##
@@ -53,6 +53,9 @@ my_sims$Biomass <- my_sims$Biomass %>%
 # Load trawling data of the Celtic sea:
 load(file = "data/celtic_trawl_data.Rdata")
 
+# Load trawling data of the Mid Atlantic Bight:
+load(file = "data/mid_trawl_data.Rdata")
+
 
 #-----------------------------------------------
 # Edit data:
@@ -64,7 +67,7 @@ data <- cobalt_NAtlantic_slopes %>%
 # Get color palette:
 my_params <- setupVertical2()
 my_palette <- my_params$my_palette
-region_pallet <- c("#6699CC", "#117733", "#AA4499", "#332288", "grey85", "#661100")
+region_pallet <- c("#6699CC", "#117733", "#AA4499", "#332288", "grey85", "#A65B00")
 
 #----------------------------------------------------------------------------
 # Plot relative biomas:
@@ -132,7 +135,7 @@ p <- ggplot() +
   scale_fill_manual(values = c("#A65B00", as.vector(my_palette)[c(8, 6, 5)])) +
   scale_color_manual(values = c("#A65B00", as.vector(my_palette)[c(8, 6, 5)])) +
   geom_hline(yintercept = 0, alpha = .3) +
-  xlab("Depth (m)") +
+  xlab("Bottom depth (m)") +
   ylab(expression(paste("% flux of C to demersal fishes"))) +
   xlim(c(NA, 2500)) +
   facet_wrap(vars(region)) +
@@ -271,7 +274,7 @@ lons = c(-16, -8)
 lats = c(51, 55)
 
 survey <- survey3 %>%
-  filter(Depth <= 700, 
+  filter(Depth <= 750, 
          ShootLong > -16, ShootLong < -8, 
          ShootLat > 51, ShootLat < 55, 
          class != "Cephalopoda") 
@@ -287,20 +290,21 @@ p1 <- survey %>%
                size = c(.3),
                colour = c("grey90")) +
   
-  ylab("Lon") + xlab("Lat") +
+  ylab("Longitude") + xlab("Latitude") +
   
   geom_sf(data = cntries, fill = "grey", colour = NA) +
   
   
-  geom_point(aes(x = ShootLong, y = ShootLat, color = -Depth))+
-  labs(color = "Depth (m)") +
+  geom_point(aes(x = ShootLong, y = ShootLat, color = Depth))+
+  scale_color_continuous(trans = 'reverse') +
+  labs(color = "Bottom depth (m)") +
   
   # configure projection and plot domain
   coord_sf(xlim = lons, ylim = lats) +
   theme_base() +
   theme(plot.background = element_blank(),
         legend.background = element_blank(),
-        legend.position = c(.17, .7)) +
+        legend.position = c(.26, .7)) +
   ggtitle("a")
 
 
@@ -350,7 +354,7 @@ p2 <- ggplot() +
   scale_color_manual(values = c("#FF00FF", "gray50")) +
   geom_hline(yintercept = 0, alpha = .3) +
   ylab(expression(paste("Biomass (g ww ",m^2,")"))) +  
-  xlab("Depth (m)") +
+  xlab("Bottom depth (m)") +
   xlim(c(NA, 700)) +
   theme_base() +
   theme(plot.background = element_blank(),
@@ -369,6 +373,111 @@ p <- p1 + p2  &
 p
 ggsave("plots/totBiomass_celtic_map.png", p, height = 36 , width = 80, units = "mm", scale = 3)
 
+
+# Mid Atlantic Bight:
+data_mid_feisty <- data %>%
+  filter(region == "Mid Atlantic Bight") %>%
+  dplyr::select(depth, funGroup, totBiomass) %>%
+  mutate(source = "FEISTY") %>%
+  filter(funGroup == "demersals")
+
+
+df_mid_trawl %>%
+  mutate(depth_round = round(depth / 100) * 100) %>%
+  group_by(depth_round) %>%
+  summarise(count = n()) 
+
+data_mid_trawl_unique <- df_mid_trawl %>%
+  group_by(haulid) %>%
+  slice(1)
+
+# Set map limits:
+lons = c(-78, -65)
+lats = c(34, 42)
+
+p3 <- data_mid_trawl_unique %>%
+  ggplot() +
+  
+  # add bathymetry contour
+  geom_contour(data = bf, 
+               aes(x = x, y = y, z = z),
+               # breaks = c(-1000),
+               breaks = seq(from = -200, to = -2600, by = -200),
+               size = c(.3),
+               colour = c("grey90")) +
+  
+  ylab("Longitude") + xlab("Latitude") +
+  
+  geom_sf(data = cntries, fill = "grey", colour = NA) +
+  
+  
+  geom_point(aes(x = lon, y = lat, color = depth)) +
+  scale_color_continuous(trans = 'reverse', limits = c(750, 0)) +
+  labs(color = "Depth (m)") +
+  
+  # configure projection and plot domain
+  coord_sf(xlim = lons, ylim = lats) +
+  theme_base() +
+  theme(plot.background = element_blank(),
+        legend.background = element_blank(),
+        legend.position = "none") +
+  ggtitle("c")
+
+p3
+
+
+df_mid_trawl <- df_mid_trawl %>%
+  ungroup() %>%
+  dplyr::select(depth, funGroup, totBiomass, source)
+
+
+df_mid <- rbind(data_mid_feisty, df_mid_trawl)
+
+df_mid_2 <- df_mid %>%
+  mutate(depth_round = round(depth / 100) * 100) %>%
+  group_by(depth_round, funGroup, source) %>%
+  reframe(sd_totBiomass = sd(totBiomass),
+          se_totBiomass = sd_totBiomass/sqrt(n()),
+          totBiomass = mean(totBiomass)) 
+
+
+p4 <- ggplot() +
+  geom_line(data = df_mid_2,
+            aes(x = depth_round, y = totBiomass, color = source)) +
+  geom_ribbon(data = df_mid_2, 
+              aes(x = depth_round, ymin = ifelse((totBiomass - sd_totBiomass) < 0, 0, (totBiomass - sd_totBiomass)), ymax = totBiomass + sd_totBiomass, fill = source), 
+              alpha = 0.2) +
+  scale_fill_manual(values = c("#FF00FF", "gray50")) +
+  scale_color_manual(values = c("#FF00FF", "gray50")) +
+  geom_hline(yintercept = 0, alpha = .3) +
+  ylab(expression(paste("Biomass (g ww ",m^2,")"))) +  
+  xlab("Bottom depth (m)") +
+  xlim(c(NA, 700)) +
+  theme_base() +
+  theme(plot.background = element_blank(),
+        legend.background = element_blank(),
+        legend.position = "none",
+        legend.title = element_blank()) +
+  ggtitle("d") 
+
+p4
+
+
+p <- p3 + p4  &
+  theme(plot.background = element_blank()) &
+  theme(plot.tag = element_text(size = 10))
+
+p
+ggsave("plots/totBiomass_mid_map.png", p, height = 36 , width = 80, units = "mm", scale = 3)
+
+
+p <- p1 + p2 + p3 + p4 +
+  plot_layout(ncol = 2) &
+  theme(plot.background = element_blank()) &
+  theme(plot.tag = element_text(size = 10))
+
+p
+ggsave("plots/totBiomass_map.png", p, height = 70 , width = 80, units = "mm", scale = 3)
 
 
 #-------------------------------------------------
@@ -620,7 +729,7 @@ p <- ggplot() +
   geom_line(data = plotdf, aes(x = mc, y = depth, group = index, color = SpId, alpha = Alpha),
             show.legend = F, linewidth = subset(out2, region == "Western Ireland")$LineWdth * 1) +
   geom_point(data = subset(out2, region == "Western Ireland"), aes(x = mc, y = depth, color = SpId, size = Msize), stroke = 0, shape = 16) +
-  scale_color_manual(values = c("#662506", "#228833", "#33BBEE", "#AA4499", "#EE6677", "#999933")) +
+  scale_color_manual(values = c("#A65B00", "#228833", "#33BBEE", "#AA4499", "#EE6677", "#999933")) +
   scale_radius(limits = c(0, NA), range = c(0, 10 * msize)) +
   guides(size = "none") +
   theme_base() +
@@ -645,7 +754,7 @@ p <- ggplot() +
   geom_line(data = plotdf, aes(x = mc, y = depth, group = index, color = SpId, alpha = Alpha),
             show.legend = F, linewidth = subset(out2, region == "North Caribbean")$LineWdth * 1) +
   geom_point(data = subset(out2, region == "North Caribbean"), aes(x = mc, y = depth, color = SpId, size = Msize), stroke = 0, shape = 16) +
-  scale_color_manual(values = c("#662506", "#228833", "#33BBEE", "#AA4499", "#EE6677", "#999933")) +
+  scale_color_manual(values = c("#A65B00", "#228833", "#33BBEE", "#AA4499", "#EE6677", "#999933")) +
   scale_radius(limits = c(0, NA), range = c(0, 10 * msize)) +
   guides(size = "none")+
   theme_base() +
@@ -670,7 +779,7 @@ p <- ggplot() +
   geom_line(data = plotdf, aes(x = mc, y = depth, group = index, color = SpId, alpha = Alpha),
             show.legend = F, linewidth = subset(out2, region == "Gulf of Mexico")$LineWdth * 1) +
   geom_point(data = subset(out2, region == "Gulf of Mexico"), aes(x = mc, y = depth, color = SpId, size = Msize), stroke = 0, shape = 16) +
-  scale_color_manual(values = c("#662506", "#228833", "#33BBEE", "#AA4499", "#EE6677", "#999933")) +
+  scale_color_manual(values = c("#A65B00", "#228833", "#33BBEE", "#AA4499", "#EE6677", "#999933")) +
   scale_radius(limits = c(0, NA), range = c(0, 10 * msize)) +
   guides(size = "none")+
   theme_base() +
@@ -695,7 +804,7 @@ p <- ggplot() +
   geom_line(data = plotdf, aes(x = mc, y = depth, group = index, color = SpId, alpha = Alpha),
             show.legend = F, linewidth = subset(out2, region == "Mid Atlantic Bight")$LineWdth * 1) +
   geom_point(data = subset(out2, region == "Mid Atlantic Bight"), aes(x = mc, y = depth, color = SpId, size = Msize), stroke = 0, shape = 16) +
-  scale_color_manual(values = c("#662506", "#228833", "#33BBEE", "#AA4499", "#EE6677", "#999933")) +
+  scale_color_manual(values = c("#A65B00", "#228833", "#33BBEE", "#AA4499", "#EE6677", "#999933")) +
   scale_radius(limits = c(0, NA), range = c(0, 10 * msize)) +
   guides(size = "none")+
   theme_base() +
@@ -721,7 +830,7 @@ p <- ggplot() +
   geom_line(data = plotdf, aes(x = mc, y = depth, group = index, color = SpId, alpha = Alpha),
             show.legend = F, linewidth = subset(out2, region == "Sahelian upwelling")$LineWdth * 1) +
   geom_point(data = subset(out2, region == "Sahelian upwelling"), aes(x = mc, y = depth, color = SpId, size = Msize), stroke = 0, shape = 16) +
-  scale_color_manual(values = c("#662506", "#228833", "#33BBEE", "#AA4499", "#EE6677", "#999933")) +
+  scale_color_manual(values = c("#A65B00", "#228833", "#33BBEE", "#AA4499", "#EE6677", "#999933")) +
   scale_radius(limits = c(0, NA), range = c(0, 10 * msize)) +
   guides(size = "none")+
   theme_base() +
@@ -742,7 +851,7 @@ p <- ggplot() +
   geom_line(data = out2, aes(x = mc, y = depth, group = index, color = SpId, alpha = Alpha),
             show.legend = F, linewidth = out2$LineWdth*3) +
   geom_point(data = out2, aes(x = mc, y = depth, color = SpId, size = Msize), stroke = 0, shape = 16) +
-  scale_color_manual(values = c("#662506", "#228833", "#33BBEE", "#AA4499", "#EE6677", "#999933")) +
+  scale_color_manual(values = c("#A65B00", "#228833", "#33BBEE", "#AA4499", "#EE6677", "#999933")) +
   scale_radius(limits = c(0, NA), range = c(0, 20)) +
   guides(size = "none") +
   theme_base() +

@@ -5,7 +5,7 @@
 ## Email: daniel.ottmann.riera@gmail.com
 ##
 ## Date created: January 2024
-## Last update:  March 2025
+## Last update:  July 2025
 ##
 ## ---------------------------
 ##
@@ -57,13 +57,13 @@ time0 <- Sys.time()
 Sys.time() -time0
 
 # Outfile data:
-# save(my_sims, file = "data/simulations_NAtlantic_slopes_sensitivity_am0.9.Rdata")
+# save(my_sims, file = "data/simulations_NAtlantic_slopes_sensitivity_demmig0.9.Rdata")
 
 # Load simulations:
 # Basic run:
 load(file = "data/simulations_NAtlantic_slopes.Rdata")
 
-benchmark <- cobalt_NAtlantic_slopes %>%
+benchmark_B <- cobalt_NAtlantic_slopes %>%
   left_join(my_sims$Biomass, by = "id") %>%
   filter(region == "Western Ireland", funGroup == "demersals", depth >500 & depth <1800) %>%
   summarise(mean = mean(totBiomass))
@@ -101,6 +101,10 @@ load(file = "data/simulations_NAtlantic_slopes_sensitivity_am1.1.Rdata")
 
 load(file = "data/simulations_NAtlantic_slopes_sensitivity_am0.9.Rdata")
 
+load(file = "data/simulations_NAtlantic_slopes_sensitivity_demmig1.1.Rdata")
+
+load(file = "data/simulations_NAtlantic_slopes_sensitivity_demmig0.9.Rdata")
+
 
 
 my_sims$Biomass <- my_sims$Biomass %>%
@@ -123,13 +127,13 @@ sensitivity_test <- data %>%
   filter(region == "Western Ireland", funGroup == "demersals", depth >500 & depth <1800) %>%
   summarise(mean = mean(totBiomass))
 
-100 * (sensitivity_test - benchmark) / benchmark
+100 * (sensitivity_test - benchmark_B) / benchmark_B
 
 # Compare detrital flux vs active carbon transport:
 # Calculate total active flux:
 data4 <- cobalt_NAtlantic_slopes %>%
   filter(
-    # depth >500 & depth <1800,
+    depth >500 & depth <1800,
     region != "Others") %>%
   left_join(my_sims$diet, by = "id") %>%
   mutate(flux_pathway2 = case_when(flux_pathway %in% c("Midwater", "Epipelagic") ~ "Pelagic",
@@ -215,7 +219,7 @@ df4 <- df4 %>%
          c_area = area * flux) # m^2 * g m^-2 = g
 
 # Calculate total active C and CO2 flux:
-df4 %>%
+fluxes <- df4 %>%
   filter(depth >= 500, depth <= 1800) %>%
   group_by(region) %>%
   summarise(area_km2 = sum(area) / 1e6, # m^-2 to km^2
@@ -224,6 +228,9 @@ df4 %>%
             c_region_km2 = c_region * 1000 / area_km2) # tones km^-2 to kg km^-2
 # CO2_km2 = co2_region * 1e6 / area_km2) 
 
+100 * (fluxes[5, 4] - benchmark_flux) / benchmark_flux
+
+benchmark_flux <- fluxes[5, 4]
 
 #------------------------------------------------------------------------------------------------
 # Special case of Celtic sea:
@@ -276,7 +283,7 @@ p2 <- ggplot() +
   scale_color_manual(values = c("#FF00FF", "gray50")) +
   geom_hline(yintercept = 0, alpha = .3) +
   ylab(expression(paste("Biomass (g ww ",m^2,")"))) +  
-  xlab("Depth (m)") +
+  xlab("Bottom depth (m)") +
   xlim(c(NA, 700)) +
   theme_base() +
   theme(plot.background = element_blank(),

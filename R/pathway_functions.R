@@ -99,7 +99,8 @@ my_setupvertical2 <- function(szprod = 80, # small zoo production
                               # asymptotic size. Different from
                               # van Denderen (2021), where it is 0.002
                               Fmax = 0,
-                              etaF = 0.05) {
+                              etaF = 0.05,
+                              sensitivity_demmig = 0.9 ) { # Sensitivity of demersal fish daily upward migration (0.9 = 10% shallower;1.1 = 10% deeper)
   # benthic production calc
   if (is.na(bprodin) & is.na(dfbot) & is.na(dfpho)){ # if all benthic arguments are NA, assign bprod to 5
     bprodin = -1; dfbot = -1; dfpho = 350
@@ -265,11 +266,11 @@ my_setupvertical2 <- function(szprod = 80, # small zoo production
   dem_n = VertDist(sigmap[ix], xlocvec)
   
   # demersal fish day; small at surface/ medium at bottom/ large at middle
-  demmig = param$dvm # ? from matlab
+  demmig = param$dvm * sensitivity_demmig# ? from matlab
   if ((param$bottom - param$dvm) >= 1200) 
-    demmig = param$dvm + (param$bottom-param$dvm-1200)
+    demmig = (param$dvm + param$bottom-param$dvm-1200) * sensitivity_demmig
   if ((param$bottom - param$dvm) >= 1500)
-    demmig = param$bottom
+    demmig = param$bottom 
   
   dem_d= matrix(nrow=length(xrange), ncol=length(param$ix[[5]]), data=0)
   
@@ -668,6 +669,7 @@ run_feisty_sensitivity <- function(data) {
       my_setup$metabolism  <- my_setup$metabolism * 1
       my_setup$Cmax <- my_setup$Cmax * 1
       my_setup$epsAssim <- my_setup$epsAssim * 1
+      # Sensitivity to vertical migration of demersal fishes is coded in my_setupvertical2 function
       
       # etaMature_new <- 0.002 # your new eatMature factor
       # my_setup$mMature[5] <- etaMature_new * 125000 # new size with 50% maturity
