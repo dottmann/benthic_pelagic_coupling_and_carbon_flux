@@ -141,6 +141,7 @@ p <- ggplot() +
   facet_wrap(vars(region)) +
   theme_base() +
   theme(plot.background = element_blank(),
+        panel.background = element_blank(),
         legend.title = element_blank())
 
 p
@@ -303,6 +304,7 @@ p1 <- survey %>%
   coord_sf(xlim = lons, ylim = lats) +
   theme_base() +
   theme(plot.background = element_blank(),
+        panel.background = element_blank(),
         legend.background = element_blank(),
         legend.position = c(.26, .7)) +
   ggtitle("a")
@@ -358,6 +360,7 @@ p2 <- ggplot() +
   xlim(c(NA, 700)) +
   theme_base() +
   theme(plot.background = element_blank(),
+        panel.background = element_blank(),
         legend.background = element_blank(),
         legend.position = c(.8, .8),
         legend.title = element_blank()) +
@@ -366,8 +369,8 @@ p2 <- ggplot() +
 p2
 
 
-p <- p1 + p2  &
-  theme(plot.background = element_blank()) &
+p <- p1 + p2  +
+  theme(plot.background = element_blank()) +
   theme(plot.tag = element_text(size = 10))
 
 p
@@ -419,6 +422,7 @@ p3 <- data_mid_trawl_unique %>%
   coord_sf(xlim = lons, ylim = lats) +
   theme_base() +
   theme(plot.background = element_blank(),
+        panel.background = element_blank(),
         legend.background = element_blank(),
         legend.position = "none") +
   ggtitle("c")
@@ -455,6 +459,7 @@ p4 <- ggplot() +
   xlim(c(NA, 700)) +
   theme_base() +
   theme(plot.background = element_blank(),
+        panel.background = element_blank(),
         legend.background = element_blank(),
         legend.position = "none",
         legend.title = element_blank()) +
@@ -463,8 +468,8 @@ p4 <- ggplot() +
 p4
 
 
-p <- p3 + p4  &
-  theme(plot.background = element_blank()) &
+p <- p3 + p4  +
+  theme(plot.background = element_blank()) +
   theme(plot.tag = element_text(size = 10))
 
 p
@@ -472,8 +477,8 @@ ggsave("plots/totBiomass_mid_map.png", p, height = 36 , width = 80, units = "mm"
 
 
 p <- p1 + p2 + p3 + p4 +
-  plot_layout(ncol = 2) &
-  theme(plot.background = element_blank()) &
+  plot_layout(ncol = 2) +
+  theme(plot.background = element_blank()) +
   theme(plot.tag = element_text(size = 10))
 
 p
